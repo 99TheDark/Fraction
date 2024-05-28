@@ -1,5 +1,6 @@
 use std::{f64::INFINITY, fmt};
 
+#[derive(Debug, Clone, Copy)]
 pub struct Fraction {
     pub sign: bool,
     pub numerator: u64,
@@ -7,6 +8,11 @@ pub struct Fraction {
 }
 
 const EPSILON: f64 = 0.0000001;
+
+fn integral(num: f64) -> bool {
+    let n = num - num.trunc();
+    n.abs() <= EPSILON || (1.0 - n).abs() <= EPSILON
+}
 
 fn divisible(num: u64, by: u64) -> bool {
     (num / by) * by == num
@@ -54,6 +60,11 @@ impl Fraction {
                 numerator: 0,
                 denominator: 1,
             },
+            x if integral(x) => Fraction {
+                sign: decimal >= 0.0,
+                numerator: decimal.abs() as u64,
+                denominator: 1,
+            },
             x if x.is_nan() => Fraction {
                 sign: true,
                 numerator: 0,
@@ -68,19 +79,19 @@ impl Fraction {
                 let mut i = 1;
                 loop {
                     let defrac = (decimal * i as f64).abs();
-                    if (defrac - defrac.trunc() - 1.0).abs() <= EPSILON {
+                    if integral(defrac) {
                         break;
                     }
                     i += 1;
 
-                    if i > 1 << 32 {
+                    if i > 1 << 6 {
                         break;
                     }
                 }
 
                 Fraction {
                     sign: decimal >= 0.0,
-                    numerator: (decimal * i as f64).abs() as u64 + 1,
+                    numerator: ((decimal * i as f64).abs() - EPSILON) as u64 + 1,
                     denominator: i,
                 }
             }
@@ -159,12 +170,7 @@ impl std::ops::Sub for Fraction {
     type Output = Fraction;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        let flipped = Fraction {
-            sign: !rhs.sign,
-            numerator: rhs.numerator,
-            denominator: rhs.denominator,
-        };
-        self + flipped
+        self + (-rhs)
     }
 }
 
@@ -191,5 +197,49 @@ impl std::ops::Div for Fraction {
 
     fn div(self, rhs: Self) -> Self::Output {
         self * rhs.reciprocal()
+    }
+}
+
+impl std::ops::Neg for Fraction {
+    type Output = Fraction;
+
+    fn neg(self) -> Self::Output {
+        Fraction {
+            sign: !self.sign,
+            numerator: self.numerator,
+            denominator: self.denominator,
+        }
+    }
+}
+
+impl std::ops::Add<f64> for Fraction {
+    type Output = Fraction;
+
+    fn add(self, rhs: f64) -> Self::Output {
+        self + Fraction::from(rhs)
+    }
+}
+
+impl std::ops::Sub<f64> for Fraction {
+    type Output = Fraction;
+
+    fn sub(self, rhs: f64) -> Self::Output {
+        self - Fraction::from(rhs)
+    }
+}
+
+impl std::ops::Mul<f64> for Fraction {
+    type Output = Fraction;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        self * Fraction::from(rhs)
+    }
+}
+
+impl std::ops::Div<f64> for Fraction {
+    type Output = Fraction;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        self / Fraction::from(rhs)
     }
 }
