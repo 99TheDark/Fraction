@@ -7,7 +7,7 @@ pub struct Fraction {
     pub denominator: u64,
 }
 
-const EPSILON: f64 = 0.0000001;
+const EPSILON: f64 = 0.00000001;
 
 fn integral(num: f64) -> bool {
     let n = num - num.trunc();
@@ -84,14 +84,14 @@ impl Fraction {
                     }
                     i += 1;
 
-                    if i > 1 << 6 {
+                    if i > 1 << 32 {
                         break;
                     }
                 }
 
                 Fraction {
                     sign: decimal >= 0.0,
-                    numerator: ((decimal * i as f64).abs() - EPSILON) as u64 + 1,
+                    numerator: (decimal * i as f64).round().abs() as u64,
                     denominator: i,
                 }
             }
